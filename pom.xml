@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.mule.modules</groupId>
     <artifactId>mule-module-redis</artifactId>
-    <version>3.4.1-SNAPSHOT</version>
+    <version>3.4.3-SNAPSHOT</version>
     <packaging>mule-module</packaging>
     <name>Mule Redis Module</name>
     <description>Redis support for Mule</description>
@@ -12,7 +12,7 @@
     <parent>
         <groupId>org.mule.tools.devkit</groupId>
         <artifactId>mule-devkit-parent</artifactId>
-        <version>3.4.1</version>
+        <version>3.4.3</version>
     </parent>
     <properties>
         <category>Community</category>
@@ -140,6 +140,12 @@
             <id>mulesoft-releases</id>
             <name>MuleSoft Releases Repository</name>
             <url>http://repository.mulesoft.org/releases/</url>
+            <layout>default</layout>
+        </repository>
+        <repository>
+            <id>mulesoft-releases-nexuspublic</id>
+            <name>MuleSoft Releases Repository NexusPublic</name>
+            <url>https://repository.mulesoft.org/nexus/content/repositories/releases/</url>
             <layout>default</layout>
         </repository>
     </repositories>
