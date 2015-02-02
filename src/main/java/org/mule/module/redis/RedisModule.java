@@ -8,15 +8,6 @@
 
 package org.mule.module.redis;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.inject.Inject;
-
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.commons.logging.Log;
@@ -33,22 +24,20 @@ import org.mule.api.annotations.param.Default;
 import org.mule.api.annotations.param.Optional;
 import org.mule.api.callback.SourceCallback;
 import org.mule.api.context.MuleContextAware;
-import org.mule.api.store.ObjectAlreadyExistsException;
-import org.mule.api.store.ObjectDoesNotExistException;
-import org.mule.api.store.ObjectStore;
-import org.mule.api.store.ObjectStoreException;
-import org.mule.api.store.PartitionableObjectStore;
+import org.mule.api.store.*;
 import org.mule.config.i18n.MessageFactory;
 import org.mule.module.redis.RedisUtils.RedisAction;
 import org.mule.util.StringUtils;
-
-import redis.clients.jedis.BinaryJedis;
-import redis.clients.jedis.BinaryTransaction;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.Response;
+import redis.clients.jedis.*;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.util.SafeEncoder;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Redis is an open-source, networked, in-memory, persistent, journaled, key-value data store.
@@ -168,17 +157,14 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
      *            be volatile in Redis terminology.
      * @param ifNotExists If true, then execute SETNX on the Redis server, otherwise execute SET
      * @param value The value to set.
-     * @param muleEvent The current {@link MuleEvent}.
      * @return If the key already exists and ifNotExists is true, null is returned. Otherwise the
      *         message is returned.
      */
     @Processor
-    //@Inject
     public byte[] set(final String key,
                       @Optional final Integer expire,
                       @Optional @Default("false") final boolean ifNotExists,
-                      @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value,
-                      final MuleEvent muleEvent)
+                      @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value)
     {
         return RedisUtils.run(jedisPool, new RedisAction<byte[]>()
         {
@@ -186,7 +172,8 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
             public byte[] run()
             {
                 final byte[] keyAsBytes = SafeEncoder.encode(key);
-                byte[] valueAsBytes = RedisUtils.toBytes(value, muleEvent.getEncoding());
+                byte[] valueAsBytes = RedisUtils.toBytes(value,
+                        RequestContext.getEvent().getEncoding()); // get MuleEvent from RequestContext
 
                 if (ifNotExists)
                 {
@@ -324,17 +311,14 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
      * @param field Field that will be used for HSET
      * @param ifNotExists If true execute HSETNX otherwise HSET
      * @param value The value to set.
-     * @param muleEvent The current {@link MuleEvent}.
      * @return If the field already exists and ifNotExists is true, null is returned, otherwise if a
      *         new field is created the message is returned.
      */
     @Processor(name = "hash-set")
-    //@Inject
     public byte[] setInHash(final String key,
                             final String field,
                             @Optional @Default("false") final boolean ifNotExists,
-                            @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value,
-                            final MuleEvent muleEvent)
+                            @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value)
     {
         return RedisUtils.run(jedisPool, new RedisAction<byte[]>()
         {
@@ -343,7 +327,8 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
             {
                 final byte[] keyAsBytes = SafeEncoder.encode(key);
                 final byte[] fieldAsBytes = SafeEncoder.encode(field);
-                final byte[] valueAsBytes = RedisUtils.toBytes(value, muleEvent.getEncoding());
+                final byte[] valueAsBytes = RedisUtils.toBytes(value,
+                        RequestContext.getEvent().getEncoding()); // get MuleEvent from RequestContext
 
                 if (ifNotExists)
                 {
@@ -497,24 +482,22 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
      * @param side The side where to push the payload, either LEFT or RIGHT
      * @param ifExists If true execute LPUSHX/RPUSH otherwise LPUSH/RPUSH
      * @param value The value to push.
-     * @param muleEvent The current {@link MuleEvent}.
      * @return If the key doesn't already exist and ifExists is true, null is returned. Otherwise
      *         the message is returned.
      */
     @Processor(name = "list-push")
-    //@Inject
     public byte[] pushToList(final String key,
                              final ListPushSide side,
                              @Optional @Default("false") final boolean ifExists,
-                             @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value,
-                             final MuleEvent muleEvent)
+                             @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value)
     {
         return RedisUtils.run(jedisPool, new RedisAction<byte[]>()
         {
             @Override
             public byte[] run()
             {
-                final byte[] valueAsBytes = RedisUtils.toBytes(value, muleEvent.getEncoding());
+                final byte[] valueAsBytes = RedisUtils.toBytes(value,
+                        RequestContext.getEvent().getEncoding()); // get MuleEvent from RequestContext
                 return side.push(redis, SafeEncoder.encode(key), valueAsBytes, ifExists);
             }
         });
@@ -556,16 +539,13 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
      * @param mustSucceed If true, ensures that adding to the set was successful (ie no pre-existing
      *            identical value in the set)
      * @param value The value to set.
-     * @param muleEvent The current {@link MuleEvent}.
      * @return If no new entry has been added to the set and mustSucceed is true, null is returned.
      *         Otherwise the message is returned.
      */
     @Processor(name = "set-add")
-    //@Inject
     public byte[] addToSet(final String key,
                            @Optional @Default("false") final boolean mustSucceed,
-                           @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value,
-                           final MuleEvent muleEvent)
+                           @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value)
     {
         return RedisUtils.run(jedisPool, new RedisAction<byte[]>()
         {
@@ -573,7 +553,8 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
             public byte[] run()
             {
                 final byte[] keyAsBytes = SafeEncoder.encode(key);
-                final byte[] valueAsBytes = RedisUtils.toBytes(value, muleEvent.getEncoding());
+                final byte[] valueAsBytes = RedisUtils.toBytes(value,
+                        RequestContext.getEvent().getEncoding()); // get MuleEvent from RequestContext
 
                 final long result = redis.sadd(keyAsBytes, valueAsBytes);
                 return !mustSucceed || result > 0 ? valueAsBytes : null;
@@ -642,17 +623,14 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
      * @param mustSucceed If true, ensures that adding to the sorted set was successful (ie no
      *            pre-existing identical value in the set)
      * @param value The value to set.
-     * @param muleEvent The current {@link MuleEvent}.
      * @return If no new entry has been added to the sorted set and mustSucceed is true, null is
      *         returned. Otherwise the message is returned.
      */
     @Processor(name = "sorted-set-add")
-    //@Inject
     public byte[] addToSortedSet(final String key,
                                  final double score,
                                  @Optional @Default("false") final boolean mustSucceed,
-                                 @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value,
-                                 final MuleEvent muleEvent)
+                                 @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value)
     {
         return RedisUtils.run(jedisPool, new RedisAction<byte[]>()
         {
@@ -660,7 +638,8 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
             public byte[] run()
             {
                 final byte[] keyAsBytes = SafeEncoder.encode(key);
-                final byte[] valueAsBytes = RedisUtils.toBytes(value, muleEvent.getEncoding());
+                final byte[] valueAsBytes = RedisUtils.toBytes(value,
+                        RequestContext.getEvent().getEncoding()); // get MuleEvent from RequestContext
 
                 final long result = redis.zadd(keyAsBytes, score, valueAsBytes);
                 return !mustSucceed || result > 0 ? valueAsBytes : null;
@@ -789,15 +768,12 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
      * @param key the key in the sorted set.
      * @param step the step to use to increment the score.
      * @param value The value to set.
-     * @param muleEvent The current {@link MuleEvent}.
      * @return the new score of the member.
      */
     @Processor(name = "sorted-set-increment")
-    //@Inject
     public Double incrementSortedSet(final String key,
                                      final double step,
-                                     @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value,
-                                     final MuleEvent muleEvent)
+                                     @Optional @Default("#[message.payloadAs(java.lang.String)]") final String value)
     {
         return RedisUtils.run(jedisPool, new RedisAction<Double>()
         {
@@ -805,7 +781,8 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
             public Double run()
             {
                 final byte[] keyAsBytes = SafeEncoder.encode(key);
-                final byte[] valueAsBytes = RedisUtils.toBytes(value, muleEvent.getEncoding());
+                final byte[] valueAsBytes = RedisUtils.toBytes(value,
+                        RequestContext.getEvent().getEncoding()); // get MuleEvent from RequestContext
 
                 return redis.zincrby(keyAsBytes, step, valueAsBytes);
             }
@@ -921,23 +898,21 @@ public class RedisModule implements PartitionableObjectStore<Serializable>, Mule
      * @param mustSucceed Enforces the fact that the message must have been delivered to at least
      *            one consumer
      * @param message The message to publish.
-     * @param muleEvent The current {@link MuleEvent}.
      * @return If no consumer is subscribed to the channel and mustSucceed is true, null is
      *         returned. Otherwise the message is returned.
      */
     @Processor
-    //@Inject
     public byte[] publish(final String channel,
                           @Optional @Default("false") final boolean mustSucceed,
-                          @Optional @Default("#[message.payloadAs(java.lang.String)]") final String message,
-                          final MuleEvent muleEvent)
+                          @Optional @Default("#[message.payloadAs(java.lang.String)]") final String message)
     {
         return RedisUtils.run(jedisPool, new RedisAction<byte[]>()
         {
             @Override
             public byte[] run()
             {
-                final byte[] messageAsBytes = RedisUtils.toBytes(message, muleEvent.getEncoding());
+                final byte[] messageAsBytes = RedisUtils.toBytes(message,
+                        RequestContext.getEvent().getEncoding()); // get MuleEvent from RequestContext
 
                 final Long numberOfSubscribers = redis.publish(SafeEncoder.encode(channel), messageAsBytes);
                 return (!mustSucceed || (mustSucceed && numberOfSubscribers > 0)) ? messageAsBytes : null;

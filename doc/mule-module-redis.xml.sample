@@ -1,6 +1,6 @@
 <!-- BEGIN_INCLUDE(redis:set) -->
 <!-- Use the current message payload as the value to set -->
-<redis:set key="mykey"  muleEvent-ref="ref" />
+<redis:set key="mykey" />
 <!-- END_INCLUDE(redis:set) -->
 
 <!-- BEGIN_INCLUDE(redis:set-value) -->
@@ -35,7 +35,7 @@
 
 <!-- BEGIN_INCLUDE(redis:hash-set) -->
 <!-- Use the current message payload as the value to set -->
-<redis:hash-set key="mykey" field="myfield" muleEvent-ref="ref" />
+<redis:hash-set key="mykey" field="myfield" />
 <!-- END_INCLUDE(redis:hash-set) -->
 
 <!-- BEGIN_INCLUDE(redis:hash-set-value) -->
@@ -57,7 +57,7 @@
 
 
 <!-- BEGIN_INCLUDE(redis:list-push) -->
-<redis:list-push key="my_key" side="RIGHT" muleEvent-ref="ref" />
+<redis:list-push key="my_key" side="RIGHT" />
 <!-- END_INCLUDE(redis:list-push) -->
 
 <!-- BEGIN_INCLUDE(redis:list-push-value) -->
@@ -70,7 +70,7 @@
 
 
 <!-- BEGIN_INCLUDE(redis:set-add) -->
-<redis:set-add key="my_key" muleEvent-ref="ref" />
+<redis:set-add key="my_key" />
 <!-- END_INCLUDE(redis:set-add) -->
 
 <!-- BEGIN_INCLUDE(redis:set-add-value) -->
@@ -86,7 +86,7 @@
 <!-- END_INCLUDE(redis:set-pop) -->
 
 <!-- BEGIN_INCLUDE(redis:sorted-set-add) -->
-<redis:sorted-set-add key="my_key" score="123" muleEvent-ref="ref" />
+<redis:sorted-set-add key="my_key" score="123" />
 <!-- END_INCLUDE(redis:sorted-set-add) -->
 
 <!-- BEGIN_INCLUDE(redis:sorted-set-add-value) -->
@@ -102,7 +102,7 @@
 <!-- END_INCLUDE(redis:sorted-set-select-range-by-score) -->
 
 <!-- BEGIN_INCLUDE(redis:sorted-set-increment) -->
-<redis:sorted-set-increment key="my_key" step="3.14" muleEvent-ref="ref" />
+<redis:sorted-set-increment key="my_key" step="3.14" />
 <!-- END_INCLUDE(redis:sorted-set-increment) -->
 
 <!-- BEGIN_INCLUDE(redis:sorted-set-increment-value) -->
@@ -129,7 +129,7 @@
 
 <!-- BEGIN_INCLUDE(redis:publish) -->
 <!-- Use the current message payload as the message to publish -->
-<redis:publish channel="news.art.figurative" muleEvent-ref="ref" />
+<redis:publish channel="news.art.figurative" />
 <!-- END_INCLUDE(redis:publish) -->
 
 <!-- BEGIN_INCLUDE(redis:publish-message) -->
